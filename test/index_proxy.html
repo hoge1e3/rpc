@@ -1,0 +1,30 @@
+<body>
+
+</body>
+<script src="../dist/index.umd.js">
+</script>
+<script>
+const ifurl=location.href.
+    replace(/127\.0\.0\.1/,"localhost").
+    replace(/index_proxy.html/,"iframe.html")
+;
+document.write(`
+<iframe src="${ifurl}"></iframe>
+`);
+const iframe=document.querySelector("iframe");
+const proxy=rpc.proxy;
+iframe.addEventListener("load",async ()=>{
+    const cl=proxy.client(iframe.contentWindow, "proxy", "http://localhost:8080");
+    const r=await cl.test(21);
+    prt(r);
+    await cl.prt(`Answer was ${r}`);
+});
+function prt(d) {
+    const e=document.createElement("div");
+    e.innerText=d;
+    document.body.appendChild(e);
+}
+const w=new Worker("worker.js");
+const clw=proxy.client(w,"proxy");
+clw.test(30).then(prt);
+</script>
