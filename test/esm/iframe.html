@@ -1,7 +1,6 @@
-<script src="../dist/index.umd.js">
-</script>
 <h1>Iframe</h1>
-<script>
+<script type="module">
+import * as rpc from "../../dist/index.js";
 const s=new rpc.Server("test",["http://127.0.0.1:8080"]);
 s.serv("test",({x})=>x*2);
 s.serv("prt",({m})=>prt(m));

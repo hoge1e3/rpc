@@ -1,14 +1,13 @@
 <body>
 
 </body>
-<script src="../dist/index.umd.js">
-</script>
-<script>
+<script type="module">
+import * as rpc from "../../dist/index.js";
 const ifurl=location.href.
     replace(/127\.0\.0\.1/,"localhost").
     replace(/index.html/,"iframe.html")
 ;
-document.write(`
+document.body.innerHTML+=(`
 <iframe src="${ifurl}"></iframe>
 `);
 const iframe=document.querySelector("iframe");
@@ -23,7 +22,7 @@ function prt(d) {
     e.innerText=d;
     document.body.appendChild(e);
 }
-const w=new Worker("worker.js");
+const w=new Worker("./worker.js",{type:"module"});
 const clw=new rpc.Client(w,"test");
 clw.run("test",{x:30}).then(r=>{
     prt(r);
