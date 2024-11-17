@@ -1,7 +1,15 @@
+export type MessageHandler=(e:MessageEvent<Message>)=>void;
 export type Messagable={
-    addEventListener:(type:"message", handler:(e:MessageEvent<Message>)=>void)=>boolean,
+    addEventListener:(type:"message", handler:MessageHandler)=>void,
+    removeEventListener:(type:"message", handler:MessageHandler)=>void,
     postMessage:(data:Message, origin:string|undefined)=>void,
 };
+export function isMessegable(m:any): m is Messagable{
+    return m && 
+    typeof m.addEventListener==="function" &&
+    typeof m.removeEventListener==="function" &&
+    typeof m.postMessage==="function";
+}
 export type Message=(Request|Success|Fail|ReadyRequest|ReadyResponse);
 export type Request=Context&{
     path: string,

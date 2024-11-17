@@ -1,5 +1,5 @@
 import MutablePromise from "mutable-promise";
-import { Fail, isFail, isReadyResponse, isSuccess, Messagable, Message, Success, Request, readyRequest } from "./types";
+import { Fail, isFail, isReadyResponse, isSuccess, Messagable, Message, Success, Request, readyRequest, MessageHandler } from "./types";
 
 //const debug=console.log.bind(console);
 const debug=((...args:any[])=>false);
@@ -8,6 +8,8 @@ export class Client {
     idseq=1;
     queue={} as {[key:string]:MutablePromise<any>};
     readyPromise=new MutablePromise<any>();
+    handler: MessageHandler;
+    receiver: Messagable;
     get isReady() {
         return this.readyPromise.isFulfilled;
     }
@@ -20,8 +22,13 @@ export class Client {
         const t=this;
         t.idseq=1;
         const isWorker=target instanceof Worker;
-        const receiver=(isWorker?target:globalThis as unknown as Messagable);
-        receiver.addEventListener("message",(e:MessageEvent<Message>)=>{
+        this.receiver=(isWorker?target:globalThis as unknown as Messagable);
+        if (!origin && 
+            !(this.receiver instanceof Worker) && 
+            typeof (this.receiver as any).importScripts!=="function" ) {
+            throw new Error(this.channel+": Origin must be specfied");
+        }
+        this.handler=(e:MessageEvent<Message>)=>{
             debug("CL-RECV",e);
             const d=e.data;
             if (d.channel!==channel) return;
@@ -45,20 +52,24 @@ export class Client {
                 debug("Invalid",d);
                 throw new Error("Invalid response code");
             }
-        });
+        };
+        this.receiver.addEventListener("message",this.handler);
         if (!manualProbe) this.waitReady();
+    }
+    dispose(){
+        this.receiver.removeEventListener("message",this.handler);
     }
     async requestReady() {
         this.target.postMessage(readyRequest(this.channel), this.origin);
     }
-    async waitReady() {
-        for (let i=0;i<30;i++) {
+    async waitReady(times=30, duration=100) {
+        for (let i=0;i<times;i++) {
             if (this.isReady) break;
             this.requestReady();
-            await new Promise((s)=>setTimeout(s,100));
+            await new Promise((s)=>setTimeout(s,duration));
         }
         if (!this.isReady) {
-            throw new Error("Timeout");
+            throw new Error("Timeout to connect '"+this.channel+"'");
         }
     }
     async run(path:string, params={}) {

@@ -3,31 +3,49 @@
 </body>
 <script type="module">
 import * as rpc from "../../dist/index.js";
-const ifurl=location.href.
-    replace(/127\.0\.0\.1/,"localhost").
-    replace(/index.html/,"iframe.html")
-;
-document.body.innerHTML+=(`
-<iframe src="${ifurl}"></iframe>
-`);
-const iframe=document.querySelector("iframe");
-iframe.addEventListener("load",async ()=>{
-    const cl=new rpc.Client(iframe.contentWindow, "test", "http://localhost:8080");
-    const r=await cl.run("test",{x:21});
-    prt(r);
-    await cl.run("prt",{m:`Answer was ${r}`});
-});
+const ORIGIN="http://localhost:8080";
+function openIframe(){
+    return new Promise((s)=>{
+        const ifurl=ORIGIN+"/test/iframe.html";
+        const iframe=document.createElement("iframe");
+        iframe.addEventListener("load",()=>s(iframe));
+        iframe.setAttribute("src",ifurl);
+        document.body.appendChild(iframe);
+    });
+}
+async function testIframe() {
+    const iframe=await openIframe();
+    console.log("ifrm",iframe.contentWindow);
+    const ifrmserv=new rpc.Client(iframe.contentWindow, "ifrmserv", ORIGIN);
+    const r=await ifrmserv.run("test",{x:21});
+    prt("Result of ifrmserv.test = "+r);
+    await ifrmserv.run("prt",{m:`ifrmserv.test: Answer was ${r}`});
+    
+    const reverse=new rpc.Server("ifrmrev", [ORIGIN]);
+    reverse.serv("rtest",({args})=>prt("From iframe: "+args));
+    const ifrmprox=rpc.proxy.client(iframe.contentWindow, "ifrmprox", ORIGIN);
+    ifrmprox.prt("from index.html, sent to proxy");
+}
 function prt(d) {
     const e=document.createElement("div");
     e.innerText=d;
     document.body.appendChild(e);
 }
-const w=new Worker("./worker.js",{type:"module"});
-const clw=new rpc.Client(w,"test");
-clw.run("test",{x:30}).then(r=>{
-    prt(r);
-});
-
-const reverse=new rpc.Server("reverse", ["http://localhost:8080"]);
-reverse.serv("rtest",({args})=>prt("From iframe: "+args));
+async function testWorker() {
+    const w=new Worker("worker.js",{type:"module"});
+    const wserv=new rpc.Client(w,"wserv");
+    const revw=new rpc.Server(w, "revw");
+    prt("wserv.test: "+await wserv.run("test",{x:30}));
+    revw.serv("rtest",({args})=>prt("From worker: "+args));
+    wserv.run("kickRev",{x:"Hello worker"});
+    console.log(revw);
+    //w.addEventListener("message",(e)=>console.log("W",e));
+    const wprox=rpc.proxy.client(w,"wprox");
+    prt("wprox.test: "+ await wprox.test(123));
+}
+async function main(){
+    await testIframe();
+    await testWorker();
+}
+main();
 </script>

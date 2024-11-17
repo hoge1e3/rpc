@@ -1,16 +1,29 @@
-import { Handler, isReadyRequest, isRequest, Message } from "./types";
+import { Handler, isReadyRequest, isRequest, Message, Messagable, isMessegable, MessageHandler } from "./types";
 
 //const debug=console.log.bind(console);
 const debug=((...args:any[])=>false);
 export class Server {
     isReady=false;
     paths:{[key:string]:Handler}={};
+    target: Messagable;
+    channel:string;
+    allowOrigin:string[];
+    handler: MessageHandler;
+    constructor(target: Messagable, 
+        channel:string,
+        allowOrigin:string[]);
     constructor(
-        //public target: Messagable, 
-        public channel="default",
-        public allowOrigin=[] as string[], 
-    ) {
-        globalThis.addEventListener("message", (e:MessageEvent<Message>)=>{
+        channel:string,
+        allowOrigin:string[]);
+    constructor(...a:any[]) {
+        this.target=(isMessegable(a[0])?
+            a.shift():
+            globalThis as unknown as Messagable
+        );
+        this.channel=(typeof a[0]==="string"?a.shift():"default");
+        this.allowOrigin=a.shift();
+        const channel=this.channel, allowOrigin=this.allowOrigin;
+        this.handler=(e:MessageEvent<Message>)=>{
             const d=e.data;
             const id=d.id;
             const respond=(m:Message)=>{
@@ -22,7 +35,7 @@ export class Server {
                 } else {
                     // Worker
                     debug("Worker respond", m );
-                    globalThis.postMessage(m);
+                    this.target.postMessage(m,undefined);
                 }
             };
             const context={id,channel};
@@ -63,8 +76,12 @@ export class Server {
                     ...context, error:err as Error, status:"error"
                 });
             }
-        });
+        }
+        this.target.addEventListener("message", this.handler);
         this.ready();
+    }
+    dispose(){
+        this.target.removeEventListener("message",this.handler);
     }
     install(path:string, func:Handler) {
         this.paths[path]=func;

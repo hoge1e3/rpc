@@ -1,11 +1,14 @@
 import * as rpc from "../../dist/index.js";
-const r=new rpc.Server("test");
-r.serv("test",({x})=>{
+const wserv=new rpc.Server("wserv");
+const revw=new rpc.Client(self, "revw");
+wserv.serv("test",({x})=>{
     return x*100;
 });
-const p=rpc.proxy.server("proxy",[],{
-    test(x){
-        return x*100;
-    }
+wserv.serv("kickRev",({x})=>{
+    revw.run("rtest",{args:["Hello, I am worker. Received: ",x]});
 });
-
+const wprox=rpc.proxy.server("wprox",[],{
+    test(x){
+        return x*200;
+    },
+});
