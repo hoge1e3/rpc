@@ -22,10 +22,12 @@ export class Client {
         const t=this;
         t.idseq=1;
         const isWorker=target instanceof Worker;
-        this.receiver=(isWorker?target:globalThis as unknown as Messagable);
-        if (!origin && 
-            !(this.receiver instanceof Worker) && 
-            typeof (this.receiver as any).importScripts!=="function" ) {
+        this.receiver=(isWorker?
+            target:
+            globalThis as unknown as Messagable);
+        if (!origin && isCrossOrigin(this.target)){
+            /*!(this.receiver instanceof Worker) && 
+            typeof (this.receiver as any).importScripts!=="function" ) {*/
             throw new Error(this.channel+": Origin must be specfied");
         }
         this.handler=(e:MessageEvent<Message>)=>{
@@ -62,11 +64,12 @@ export class Client {
     async requestReady() {
         this.target.postMessage(readyRequest(this.channel), this.origin);
     }
-    async waitReady(times=30, duration=100) {
+    async waitReady(times=Number.POSITIVE_INFINITY, duration=50, durationMax=1000, durationIncrement=1) {
         for (let i=0;i<times;i++) {
             if (this.isReady) break;
             this.requestReady();
             await new Promise((s)=>setTimeout(s,duration));
+            if (duration<durationMax) duration+=durationIncrement;
         }
         if (!this.isReady) {
             throw new Error("Timeout to connect '"+this.channel+"'");
@@ -83,5 +86,14 @@ export class Client {
             channel:t.channel,
         } as Request, t.origin);
         return t.queue[id];
+    }
+}
+function isCrossOrigin(target:Messagable) {
+    const m:any=target;
+    try {
+        void (m?.location?.href);
+        return false;
+    } catch(e){
+        return true;
     }
 }
