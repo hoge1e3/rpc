@@ -1,22 +1,27 @@
 import MutablePromise from "mutable-promise";
 import { Fail, isFail, isReadyResponse, isSuccess, Messagable, Message, Success, Request, readyRequest, MessageHandler } from "./types";
 
-//const debug=console.log.bind(console);
-const debug=((...args:any[])=>false);
+const debug=console.log.bind(console);
+//const debug=((...args:any[])=>false);
 export class Client {
-    idhead=Math.random()+"";
+    idhead="C"+Math.random();
     idseq=1;
-    queue={} as {[key:string]:MutablePromise<any>};
+    queue:{[key:string]:MutablePromise<any>}={};
     readyPromise=new MutablePromise<any>();
     handler: MessageHandler;
     receiver: Messagable;
+    event=new EventTarget();
+    doDebug=false;
+    debug(...a:any[]) {
+        if (this.doDebug) debug(`[${this.idhead}]`,...a);
+    }
     get isReady() {
         return this.readyPromise.isFulfilled;
     }
     constructor(
         public target: Messagable, 
         public channel="default",
-        public origin=undefined as (string|undefined),
+        public origin:string|undefined=undefined,
         public manualProbe=false,
     ) {
         const t=this;
@@ -30,28 +35,35 @@ export class Client {
             typeof (this.receiver as any).importScripts!=="function" ) {*/
             throw new Error(this.channel+": Origin must be specfied");
         }
-        this.handler=(e:MessageEvent<Message>)=>{
-            debug("CL-RECV",e);
+        this.handler=(e:MessageEvent<Message>|ErrorEvent)=>{
+            if (e instanceof ErrorEvent) {
+                throw e.error;
+            }
+            this.debug("RECV",e);
             const d=e.data;
             if (d.channel!==channel) return;
             if (isReadyResponse(d)) {
                 if (this.isReady) return;
-                debug("Worker is ready!");
-                this.readyPromise.resolve(this.isReady);
+                this.debug("readyResponse is received from server!");
+                this.readyPromise.resolve(true);
+                return;
+            }
+            if (d.type=="request"||d.type==="readyRequest") {
+                // Maybe from peer client. Ignore.
                 return;
             }
             const q=t.queue[d.id];
             if (!q) {
-                throw new Error("Missing id "+d.id);
+                throw new Error("Missing id "+d.id+" in "+this.idhead);
             }
-            debug("ID delete",d.id,t.queue );
+            this.debug("ID delete", d.id,t.queue );
             delete t.queue[d.id];
             if (isSuccess(d)){
                 q.resolve(d.result);
             } else if(isFail(d)) {
                 q.reject(d.error);
             } else { 
-                debug("Invalid",d);
+                this.debug("Invalid",d);
                 throw new Error("Invalid response code");
             }
         };
@@ -60,6 +72,10 @@ export class Client {
     }
     dispose(){
         this.receiver.removeEventListener("message",this.handler);
+        this.event.dispatchEvent(new Event("dispose"));
+    }
+    addEventListener(type:"dispose", handler: (e:Event)=>void) {
+        this.event.addEventListener(type, handler);
     }
     async requestReady() {
         this.target.postMessage(readyRequest(this.channel), this.origin);
@@ -67,6 +83,7 @@ export class Client {
     async waitReady(times=Number.POSITIVE_INFINITY, duration=50, durationMax=1000, durationIncrement=1) {
         for (let i=0;i<times;i++) {
             if (this.isReady) break;
+            this.debug("times", i);
             this.requestReady();
             await new Promise((s)=>setTimeout(s,duration));
             if (duration<durationMax) duration+=durationIncrement;
@@ -80,11 +97,13 @@ export class Client {
         await t.readyPromise;
         const id=t.idhead+(t.idseq++);
         t.queue[id]=new MutablePromise<any>();
-        debug("ADD id",id ,t.queue);
-        t.target.postMessage({
+        this.debug("ADD id", id ,t.queue);
+        const req:Request={
+            type: "request",
             id, path, params, 
             channel:t.channel,
-        } as Request, t.origin);
+        };
+        t.target.postMessage(req, t.origin);
         return t.queue[id];
     }
 }

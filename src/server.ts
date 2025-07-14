@@ -1,14 +1,20 @@
-import { Handler, isReadyRequest, isRequest, Message, Messagable, isMessegable, MessageHandler } from "./types";
+import { Handler, isReadyRequest, isRequest, Message, Messagable, isMessegable, MessageHandler, ReadyResponse, Success, Fail } from "./types";
 
-//const debug=console.log.bind(console);
-const debug=((...args:any[])=>false);
+const debug=console.log.bind(console);
+//const debug=((...args:any[])=>false);
 export class Server {
+    idhead="S"+Math.random();
     isReady=false;
     paths:{[key:string]:Handler}={};
     target: Messagable;
     channel:string;
     allowOrigin:string[];
     handler: MessageHandler;
+    event= new EventTarget();
+    doDebug=false;
+    debug(...a:any[]) {
+        if (this.doDebug) debug(`[${this.idhead}]`,...a);
+    }
     constructor(target: Messagable, 
         channel:string,
         allowOrigin:string[]);
@@ -23,10 +29,27 @@ export class Server {
         this.channel=(typeof a[0]==="string"?a.shift():"default");
         this.allowOrigin=a.shift();
         const channel=this.channel, allowOrigin=this.allowOrigin;
-        this.handler=(e:MessageEvent<Message>)=>{
+        this.handler=(e:MessageEvent<Message>|ErrorEvent)=>{
+            const sendError=(_err:any)=>{
+                let err:any=Object.assign({name:_err.name, message:_err.message, stack:_err.stack},_err||{});
+                try {
+                    const j=JSON.stringify(err);
+                    err=JSON.parse(j);
+                } catch(je) {
+                    err=err ? err.message || e+"" : "unknown";
+                    this.debug("rpc:service", je, err);
+                }
+                respond({
+                    ...context, error:err as Error, status:"error", type:"fail",
+                });
+            }
+            if (e instanceof ErrorEvent) {
+                sendError(e.error);
+                return;
+            }
             const d=e.data;
             const id=d.id;
-            const respond=(m:Message)=>{
+            const respond=(m:Success|Fail|ReadyResponse)=>{
                 if (e.source) {
                     // Iframe
                     e.source.postMessage(m,{
@@ -34,12 +57,12 @@ export class Server {
                     });    
                 } else {
                     // Worker
-                    debug("Worker respond", m );
+                    this.debug("Worker respond", m );
                     this.target.postMessage(m,undefined);
                 }
             };
             const context={id,channel};
-            debug("EVT",e, d.channel, channel);
+            this.debug("SERVER RECV",e, d.channel, channel);
             if (d.channel!==channel) return; 
             if (e.origin && !allowOrigin.includes(e.origin)) {
                 console.error("Invalid origin", e.origin);
@@ -47,8 +70,12 @@ export class Server {
                 return;
             }
             if (isReadyRequest(d)) {
-                debug("READY",d);
-                respond({id:"READY" ,channel, status:"ready"});
+                this.debug("Server READY",d);
+                respond({id:"READY" ,channel, status:"ready", type:"readyResponse"});
+                return;
+            }
+            if (d.type=="success"||d.type==="fail"||d.type==="readyResponse") {
+                // Maybe from peer server. Ignore.
                 return;
             }
             if (!isRequest(d)) throw new Error("Invalid message");
@@ -57,24 +84,11 @@ export class Server {
                 if (!f) return sendError(new Error("No such method: "+d.path));
                 Promise.resolve( f(d.params,context) ).then((r)=>{
                     respond({
-                        ...context, result:r, status:"ok"
+                        ...context, result:r, status:"ok", type:"success",
                     });
                 },sendError);
             } catch (ex) {
                 sendError(ex);
-            }
-            function sendError(_err:any) {
-                let err:any=Object.assign({name:_err.name, message:_err.message, stack:_err.stack},_err||{});
-                try {
-                    const j=JSON.stringify(err);
-                    err=JSON.parse(j);
-                } catch(je) {
-                    err=err ? err.message || e+"" : "unknown";
-                    debug("rpc:service", je, err);
-                }
-                respond({
-                    ...context, error:err as Error, status:"error"
-                });
             }
         }
         this.target.addEventListener("message", this.handler);
@@ -82,6 +96,10 @@ export class Server {
     }
     dispose(){
         this.target.removeEventListener("message",this.handler);
+        this.event.dispatchEvent(new Event("dispose"));
+    }
+    addEventListener(type:"dispose", handler: (e:Event)=>void) {
+        this.event.addEventListener(type, handler);
     }
     install(path:string, func:Handler) {
         this.paths[path]=func;

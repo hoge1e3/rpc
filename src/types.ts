@@ -1,9 +1,9 @@
-export type MessageHandler=(e:MessageEvent<Message>)=>void;
+export type MessageHandler=(e:MessageEvent<Message>|ErrorEvent,...a:any[])=>void;
 export type Messagable={
     addEventListener:(type:"message", handler:MessageHandler)=>void,
     removeEventListener:(type:"message", handler:MessageHandler)=>void,
     postMessage:(data:Message, origin:string|undefined)=>void,
-};
+}|Worker;
 export function isMessegable(m:any): m is Messagable{
     return m && 
     typeof m.addEventListener==="function" &&
@@ -12,40 +12,45 @@ export function isMessegable(m:any): m is Messagable{
 }
 export type Message=(Request|Success|Fail|ReadyRequest|ReadyResponse);
 export type Request=Context&{
+    type: "request",
     path: string,
     params: any,
 };
 export function isRequest(m:Message):m is Request{
-    return (m as any).path && (m as any).params;
+    return m.type==="request";
 }
 export type Fail=Context&{
+    type: "fail",
     status:"error",
     error: Error,
 };
 export function isFail(m:Message):m is Fail{
-    return (m as any).status==="error";
+    return m.type==="fail";
 }
 export type Success=Context&{
+    type: "success",
     result:any,
     status:"ok",
 };
 export function isSuccess(m:Message):m is Success{
-    return (m as any).status==="ok";
+    return m.type==="success";
 }
 export type Handler=(params:any, context:Context)=>any;
 type Context={id:string, channel:string};
 
 export type ReadyRequest=Context&{
+    type:"readyRequest",
     id:"READY",
 };
 export function isReadyRequest(m:Message):m is ReadyRequest{
-    return (m as any).id=="READY";
+    return m.type==="readyRequest";
 }
-export const readyRequest=(channel:string)=>({id:"READY",channel} as ReadyRequest);
+export const readyRequest=(channel:string):ReadyRequest=>({id:"READY",channel,type:"readyRequest"});
 export type ReadyResponse=Context&{
+    type: "readyResponse",
     id:"READY",
     status:"ready",
 };
 export function isReadyResponse(m:Message):m is ReadyResponse{
-    return (m as any).id=="READY" && (m as any).status==="ready";
+    return m.type==="readyResponse";
 }

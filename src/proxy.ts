@@ -69,7 +69,8 @@ export function peer(param:PeerParam) {
     [undefined, [] as string[]]:
     [param.targetOrigin, param.allowOrigin?? [param.targetOrigin]];
     const {target, service, channel}=param;
-    const cli=client(target, channel, origin, false);
-    
-
+    const cli=client(target, channel, targetOrigin, false);
+    const srv=server(globalThis as Messagable, channel, allowOrigin, service);
+    (cli as any).__unproxy__.addEventListener("dispose", ()=>srv.dispose());
+    return cli;
 }
