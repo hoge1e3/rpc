@@ -3,7 +3,7 @@
   "name": "@hoge1e3/rpc",
   "version": "1.0.4",
   "description": "RPC with Proxy object",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "scripts": {
     "build-dev": "npx webpack --mode=development",
     "build": "npx webpack --mode=production",
