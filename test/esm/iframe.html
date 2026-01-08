@@ -11,6 +11,9 @@ const ifrmprox=rpc.proxy.server("ifrmprox",[ORIGIN],{
         return x*2;
     },
     prt,
+    get() {
+        return document.body.innerText;
+    }
 });
 console.log("serv",ifrmprox.channel);
 function prt(d) {
