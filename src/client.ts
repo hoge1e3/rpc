@@ -81,6 +81,7 @@ export class Client {
         this.target.postMessage(readyRequest(this.channel), this.origin);
     }
     async waitReady(times=Number.POSITIVE_INFINITY, duration=50, durationMax=1000, durationIncrement=1) {
+        // Why pooling? -> because server cannot always respond to "creator", especially it is iframe or "Reverse" main window. 
         for (let i=0;i<times;i++) {
             if (this.isReady) break;
             this.debug("times", i);
