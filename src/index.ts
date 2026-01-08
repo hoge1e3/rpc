@@ -1,3 +1,3 @@
-export {Client} from "./client";
-export {Server} from "./server";
-export * as proxy from "./proxy";
+export {Client} from "./client.js";
+export {Server} from "./server.js";
+export * as proxy from "./proxy.js";

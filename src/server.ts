@@ -1,4 +1,4 @@
-import { Handler, isReadyRequest, isRequest, Message, Messagable, isMessegable, MessageHandler, ReadyResponse, Success, Fail } from "./types";
+import { Handler, isReadyRequest, isRequest, Message, Messagable, isMessegable, MessageHandler, ReadyResponse, Success, Fail } from "./types.js";
 
 const debug=console.log.bind(console);
 //const debug=((...args:any[])=>false);
@@ -78,7 +78,10 @@ export class Server {
                 // Maybe from peer server. Ignore.
                 return;
             }
-            if (!isRequest(d)) throw new Error("Invalid message");
+            if (!isRequest(d)) {
+                console.log("Invalid message",d);
+                throw new Error("Invalid message: "+(d as any).type);
+            }
             try {
                 const f=this.paths[d.path];
                 if (!f) return sendError(new Error("No such method: "+d.path));
