@@ -1,5 +1,5 @@
 import MutablePromise from "mutable-promise";
-import { Fail, isFail, isReadyResponse, isSuccess, Messagable, Message, Success, Request, readyRequest, MessageHandler } from "./types";
+import { Fail, isFail, isReadyResponse, isSuccess, Messagable, Message, Success, Request, readyRequest, MessageHandler } from "./types.js";
 
 const debug=console.log.bind(console);
 //const debug=((...args:any[])=>false);
@@ -92,7 +92,7 @@ export class Client {
             throw new Error("Timeout to connect '"+this.channel+"'");
         }
     }
-    async run(path:string, params={}) {
+    async run(path:string, params={}, transfer:Transferable[]=[]) {
         const t=this;
         await t.readyPromise;
         const id=t.idhead+(t.idseq++);
@@ -103,7 +103,11 @@ export class Client {
             id, path, params, 
             channel:t.channel,
         };
-        t.target.postMessage(req, t.origin);
+        if (t.origin) {
+            t.target.postMessage(req, t.origin);
+        } else {
+            t.target.postMessage(req, transfer);
+        }
         return t.queue[id];
     }
 }

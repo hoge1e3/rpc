@@ -1,6 +1,6 @@
-import { Client } from "./client";
-import { Server } from "./server";
-import { isMessegable, Messagable } from "./types";
+import { Client } from "./client.js";
+import { Server } from "./server.js";
+import { isMessegable, Messagable } from "./types.js";
 
 type Methods={[key:string]:Function};
 export function server(
@@ -43,9 +43,31 @@ export function client(
             if (typeof p==="symbol" || p==="then" || p==="toString") {
                 return Reflect.get(target, p);
             }
-            return (...args:any[])=>c.run(p,{args});
+            return (...args:any[])=>c.run(p,{args},getTransfers(args));
         }
     })
+}
+const transferMap = new WeakMap<any, Transferable[]>();
+
+function getTransfers(args: any[]):Transferable[] {
+  const r = new Set<Transferable>();
+  for (const a of args) {
+    // check whether this arg has associated transferables
+    const trans = transferMap.get(a);
+    if (!trans) continue;
+    // add all associated values
+    for (const v of trans) {
+      r.add(v);
+    }
+  }
+  return [...r];
+}
+
+export function transfer<T extends Transferable>(o: T):T;
+export function transfer<T>(o: T, trans:any[]):T;
+export function transfer<T>(o: T, trans = [o] as any[]) {
+  transferMap.set(o, trans);
+  return o;
 }
 
 type PeerParamBase={

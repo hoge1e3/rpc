@@ -2,7 +2,7 @@ export type MessageHandler=(e:MessageEvent<Message>|ErrorEvent,...a:any[])=>void
 export type Messagable={
     addEventListener:(type:"message", handler:MessageHandler)=>void,
     removeEventListener:(type:"message", handler:MessageHandler)=>void,
-    postMessage:(data:Message, origin:string|undefined)=>void,
+    postMessage:(data:Message, origin_transfer:string|any[]|undefined)=>void,
 }|Worker;
 export function isMessegable(m:any): m is Messagable{
     return m && 
