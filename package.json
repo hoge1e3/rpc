@@ -1,12 +1,13 @@
 {
   "type": "module",
   "name": "@hoge1e3/rpc",
-  "version": "1.0.4",
+  "version": "1.6.8",
   "description": "RPC with Proxy object",
-  "main": "./dist/index.js",
+  "main": "./js/index.js",
   "scripts": {
-    "build-dev": "npx webpack --mode=development",
-    "build": "npx webpack --mode=production",
+    "tsc": "npx tsc",
+    "webpack-dev": "npx webpack --mode=development",
+    "webpack": "npx webpack --mode=production",
     "test": "npx http-server -o test/index.html"
   },
   "repository": {
@@ -28,18 +29,18 @@
   "homepage": "https://github.com/hoge1e3/rpc#readme",
   "dependencies": {
     "@hoge1e3/object-id": "^1.0.0",
-    "mutable-promise": "^1.1.14"
+    "mutable-promise": "^1.1.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.1.1",
     "@types/escodegen": "^0.0.10",
     "@types/espree": "^10.0.0",
     "@types/stack-trace": "^0.0.33",
-    "@types/web": "^0.0.175",
+    "@types/web": "^0.0.278",
     "eslint": "^9.1.1",
     "globals": "^15.0.0",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.4.5",
+    "typescript": "^5.8.3",
     "webpack-cli": "^5.1.4",
     "webpack-ignore-dynamic-require": "^1.0.0"
   }
