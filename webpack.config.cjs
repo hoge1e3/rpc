@@ -19,25 +19,12 @@ module.exports = (env,argv)=>["esm","umd"].map((type)=>({
     // development に設定するとソースマップ有効でJSファイルが出力される
     mode: 'development',
     // メインとなるJavaScriptファイル（エントリーポイント）
-    entry: './src/index.ts',
+    entry: './js/index.js',
     experiments: {
     	outputModule: type==="esm",
     },
     output: outputs[type],
     module: {
-        rules: [
-            {
-                // 拡張子 .ts の場合
-                test: /\.ts$/,
-                // TypeScript をコンパイルする
-                use: {
-        			loader:'ts-loader',
-        			/*options:{
-        				plugins: ['@babel/plugin-syntax-dynamic-import'],
-        			},*/
-        		},
-            },
-        ],
         parser: {
           javascript: {
             importMeta: !env.production,
@@ -47,7 +34,7 @@ module.exports = (env,argv)=>["esm","umd"].map((type)=>({
     resolve: {
         // 拡張子を配列で指定
         extensions: [
-            '.ts', '.js',
+          '.js',
         ],
     },
     plugins: [
