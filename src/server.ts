@@ -58,7 +58,7 @@ export class Server {
                 } else {
                     // Worker
                     this.debug("Worker respond", m );
-                    this.target.postMessage(m,undefined);
+                    this.target.postMessage(m);
                 }
             };
             const context={id,channel};

@@ -78,7 +78,9 @@ export class Client {
         this.event.addEventListener(type, handler);
     }
     async requestReady() {
-        this.target.postMessage(readyRequest(this.channel), this.origin);
+        this.target.postMessage(readyRequest(this.channel), {
+          targetOrigin:this.origin
+        });
     }
     async waitReady(times=Number.POSITIVE_INFINITY, duration=50, durationMax=1000, durationIncrement=1) {
         // Why pooling? -> because server cannot always respond to "creator", especially it is iframe or "Reverse" main window. 
@@ -104,11 +106,12 @@ export class Client {
             id, path, params, 
             channel:t.channel,
         };
-        if (t.origin) {
-            t.target.postMessage(req, t.origin);
-        } else {
-            t.target.postMessage(req, transfer);
-        }
+        //const isWorker=t.target instanceof Worker;
+        
+        t.target.postMessage(req, {
+          targetOrigin:t.origin,
+          transfer
+        });
         return t.queue[id];
     }
 }

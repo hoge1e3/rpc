@@ -82,6 +82,12 @@ async function testWorker() {
     eq(buf,`wserv.test: 3000
 From worker: ["Hello, I am worker. Received: ","Hello worker"]
 wprox.test: 24600`);
+    const ms=new MessageChannel();
+    ms.port2.onmessage=({data})=>{
+        prt("From message channel: "+data);
+    };
+    await wprox.channel(rpc.proxy.transfer(ms.port1));
+    eq(buf,"From message channel: returned message");
       /*
 content of main page should be 
     wserv.test: 3000

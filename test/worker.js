@@ -12,5 +12,8 @@ const wprox=rpc.proxy.server("wprox",[],{
     test(x){
         return x*200;
     },
+    channel(ch) {
+        ch.postMessage("returned message");
+    }
 });
 

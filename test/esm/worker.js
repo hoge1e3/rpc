@@ -7,8 +7,11 @@ wserv.serv("test",({x})=>{
 wserv.serv("kickRev",({x})=>{
     revw.run("rtest",{args:["Hello, I am worker. Received: ",x]});
 });
-const wprox=rpc.proxy.server("wprox",[],{
+const wprox=rpc.worker.proxy.server("wprox",{
     test(x){
         return x*200;
     },
+    channel(ch) {
+        ch.postMessage("returned message");
+    }
 });
