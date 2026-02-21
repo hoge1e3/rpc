@@ -25,3 +25,26 @@ See `test/` folder.
 - `rpc.proxy.client(target: Window|Worker, channel:string, origin:string|undefined)`
   - Create proxy-styled client.
   - This client can call service on server with regular method invocation style. 
+- `rpc.proxy.transfer(o, trans?)`
+  - Mark a transferable object to be transferred (not copied) when passed to a proxy-styled client call.
+  - `o`: The object to transfer (e.g. `ArrayBuffer`, `MessagePort`).
+  - `trans`: Optional explicit list of transferables. They should be highly related with `o`(ex. property of `o`). Defaults to `[o]`. `
+  - Example: `proxyClient.myMethod(rpc.proxy.transfer(buffer))`
+
+## Worker Utilities
+
+`rpc.worker` provides shorthand helpers for Worker contexts, omitting origin-related arguments that are only needed for cross-origin iframe communication.
+
+- `rpc.worker.server(channel:string)`
+  - Create a server inside a Worker. Equivalent to `new rpc.Server(globalThis, channel, [])`.
+- `rpc.worker.client(target:Worker, channel:string)`
+  - Create a client that connects to a Worker. Equivalent to `new rpc.Client(target, channel)`.
+- `rpc.worker.proxy.server(channel:string, methods:{[key:string]:Function})`
+  - Create a proxy-styled server inside a Worker.
+- `rpc.worker.proxy.client(target:Worker, channel:string, manualProbe?:boolean)`
+  - Create a proxy-styled client that connects to a Worker.
+- `rpc.worker.proxy.withChannel(channel:string)`
+  - Returns a `{ server(methods), client(target, manualProbe?) }` factory with the channel name fixed.
+  - Useful when the same channel is referenced in multiple places.
+- `rpc.worker.proxy.defaultChannel`
+  - A pre-built factory equivalent to `rpc.worker.proxy.withChannel("default")`.
