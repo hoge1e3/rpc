@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@hoge1e3/rpc",
-  "version": "1.7.0",
+  "version": "2.0.1",
   "description": "RPC with Proxy object",
   "main": "./js/index.js",
   "scripts": {
